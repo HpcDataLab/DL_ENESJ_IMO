@@ -8,6 +8,7 @@ Description: This repository contains the source code, libraries and documentati
 0. Install libraries 
 + `pip install notebook`
 + `pip install random2 opencv-python numpy pandas matplotlib seaborn sklearn scipy sklearn keras scikit-image tqdm tensorflow imblearn`
++ ```bash pip3 install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html ```
 
 ### Increase size of docker containers 
 
