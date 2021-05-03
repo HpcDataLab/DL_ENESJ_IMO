@@ -31,7 +31,7 @@ Description: This repository contains the source code, libraries and documentati
 
 + `docker pull jupyterhub/jupyterhub`
 
-+ `docker run -d -p 8000:8000 --name jupyterhub --mount type=volume,source=jupyterhub-vol,target=/volume jupyterhub:latest`
++ `docker run -d -p 8000:8000 run --name jupyterhub --mount type=volume,source=jupyterhub-vol,target=/volume jupyterhub:latest`
 + `docker exec -it jupyterhub bash`
 
 #### Remove docker image and volume
