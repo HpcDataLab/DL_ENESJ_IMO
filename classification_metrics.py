@@ -2,7 +2,7 @@ class MetricsCalculator():
     def __init__(self, Y_labels, Y_probabilityPreds):
         import numpy as np
         import sklearn.metrics as metrics
-        self._Y = y_labels # correct labels
+        self._Y = Y_labels # correct labels
         self._probabilityPredictions = Y_probabilityPreds # predictions with probability distribution
         self._unique_labels = np.unique(self._Y)
         self._labelPredictions = tf.math.argmax(self._probabilityPredictions, axis=1).numpy()
