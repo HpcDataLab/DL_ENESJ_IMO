@@ -75,6 +75,7 @@ class MetricsCalculator():
                 "TN": TN
             }
         
+    
     # Compute Ccuracy over results
     def Accuracy(self, target_label_index=None, confusion_matrix=None, confusion_dict=None):
         """Measures accuracy.
@@ -98,7 +99,48 @@ class MetricsCalculator():
         if confusion_dict:
             confusion_matrix = [[confusion_dict["TP"], confusion_dict["FP"]], [confusion_dict["FN"], confusion_dict["TN"]]]
         return np.sum([confusion_matrix[i][i] for i in range(len(confusion_matrix))]) / np.sum(confusion_matrix) # compute overall correct predictions
+    
+    
+    # Measures the AUC of the given index
+    def AUC(self):
+        raise NotImplementedError("TODO")
+        
+    
+    # Measures the IoU of the given index
+    def IoU(self):
+        r = {"micro": None, "macro": None, "weighted": None}
+        for k in r.keys():
+            r[k] = metrics.jaccard_score(self._Y, self._labelPredictions, average=k)
+        return r
+        
+        
+    # Compute recall (sensitivity)
+    def Recall(self):
+        r = {"micro": None, "macro": None, "weighted": None}
+        for k in r.keys():
+            r[k] = metrics.recall_score(self._Y, self._labelPredictions, average=k)
+        return r
+    
+    
+    # Compute precision
+    def Precision(self):
+        r = {"micro": None, "macro": None, "weighted": None}
+        for k in r.keys():
+            r[k] = metrics.precision_score(self._Y, self._labelPredictions, average=k)
+        return r
+    
 
+    # Compute F1-Score
+    def F1score(self):
+        r = {"micro": None, "macro": None, "weighted": None}
+        for k in r.keys():
+            r[k] = metrics.f1_score(self._Y, self._labelPredictions, average=k)
+        return r
+    
+    
+    # Compute CohenKappa
+    def CohenKappa():
+        return metrics.cohen_kappa_score(self._Y, self._labelPredictions)
 
 class ModelMetricsCalculator(MetricsCalculator):
     """Compute most common performance metrics for a binary
