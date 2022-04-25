@@ -8,7 +8,7 @@ class MetricsCalculator():
         self._labelPredictions = tf.math.argmax(self._probabilityPredictions, axis=1).numpy()
         self._confusion_matrix = metrics.confusion_matrix(self._Y, self._labelPredictions)
         
-        # Compute confusion matrix for specific label if given
+    # Compute confusion matrix for specific label if given
     def Confusion_matrix(self, target_label_index=None, return_type="matrix"):
         """Computes a binary confusion matrix for `target_label` if given.
         Otherwise returns the multi-class confusion matrix.
@@ -74,6 +74,30 @@ class MetricsCalculator():
                 "FP": FP,
                 "TN": TN
             }
+        
+    # Compute Ccuracy over results
+    def Accuracy(self, target_label_index=None, confusion_matrix=None, confusion_dict=None):
+        """Measures accuracy.
+        Parameters
+        ----------
+        target_label_index : int, default=None
+            Label index whom to compare with other classes 
+            to perform confusion matrix.
+        confusion_matrix (optional) : array-like
+            Confusion matrix where to take model performance and
+            measure accuracy.
+        Returns
+        -------
+        accuracy : float
+            Accuracy measure.
+        """
+        # If not confusion matrix was given, compute it from scratch
+        if not confusion_matrix or confusion_dict:
+            confusion_matrix = self.Confusion_matrix(return_type="matrix") if not target_label_index else self.Confusion_matrix(return_type="matrix", target_label_index=target_label_index)
+        # If confusion matrix is given, convert into dictionary
+        if confusion_dict:
+            confusion_matrix = [[confusion_dict["TP"], confusion_dict["FP"]], [confusion_dict["FN"], confusion_dict["TN"]]]
+        return np.sum([confusion_matrix[i][i] for i in range(len(confusion_matrix))]) / np.sum(confusion_matrix) # compute overall correct predictions
 
 
 class ModelMetricsCalculator(MetricsCalculator):
