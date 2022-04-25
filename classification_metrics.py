@@ -36,6 +36,7 @@ class MetricsCalculator():
         confusion_matrix : array-like, dict
             Confusion matrix from labels with TP, TN, FP and TN values.
         """
+        import sklearn.metrics as metrics
         cm = self._confusion_matrix
         nLabels = len(self._unique_labels) # number of labels to predict
         if return_type not in ["matrix", "dict"]:
@@ -92,6 +93,7 @@ class MetricsCalculator():
         accuracy : float
             Accuracy measure.
         """
+        import sklearn.metrics as metrics
         # If not confusion matrix was given, compute it from scratch
         if not confusion_matrix or confusion_dict:
             confusion_matrix = self.Confusion_matrix(return_type="matrix") if not target_label_index else self.Confusion_matrix(return_type="matrix", target_label_index=target_label_index)
@@ -101,6 +103,17 @@ class MetricsCalculator():
         return np.sum([confusion_matrix[i][i] for i in range(len(confusion_matrix))]) / np.sum(confusion_matrix) # compute overall correct predictions
     
     
+    # Measure unbalanced metrics
+    def _UnbalancedMetric(self, metric, options=None):
+        if options:
+            r = options
+        else:
+            r = {"micro": None, "macro": None, "weighted": None}
+        for k in r.keys():
+            r[k] = metric(self._Y, self._labelPredictions, average=k)
+        return r
+    
+    
     # Measures the AUC of the given index
     def AUC(self):
         raise NotImplementedError("TODO")
@@ -108,39 +121,60 @@ class MetricsCalculator():
     
     # Measures the IoU of the given index
     def IoU(self):
-        r = {"micro": None, "macro": None, "weighted": None}
-        for k in r.keys():
-            r[k] = metrics.jaccard_score(self._Y, self._labelPredictions, average=k)
-        return r
+        import sklearn.metrics as metrics
+        return self._UnbalancedMetric(metrics.jaccard_score)
         
         
     # Compute recall (sensitivity)
     def Recall(self):
-        r = {"micro": None, "macro": None, "weighted": None}
-        for k in r.keys():
-            r[k] = metrics.recall_score(self._Y, self._labelPredictions, average=k)
-        return r
+        import sklearn.metrics as metrics
+        return self._UnbalancedMetric(metrics.recall_score)
     
     
     # Compute precision
     def Precision(self):
-        r = {"micro": None, "macro": None, "weighted": None}
-        for k in r.keys():
-            r[k] = metrics.precision_score(self._Y, self._labelPredictions, average=k)
-        return r
+        import sklearn.metrics as metrics
+        return self._UnbalancedMetric(metrics.precision_score)
     
 
     # Compute F1-Score
     def F1score(self):
-        r = {"micro": None, "macro": None, "weighted": None}
-        for k in r.keys():
-            r[k] = metrics.f1_score(self._Y, self._labelPredictions, average=k)
-        return r
+        import sklearn.metrics as metrics
+        return self._UnbalancedMetric(metrics.f1_score)
     
     
     # Compute CohenKappa
-    def CohenKappa():
+    def CohenKappa(self):
+        import sklearn.metrics as metrics
         return metrics.cohen_kappa_score(self._Y, self._labelPredictions)
+    
+    
+    # Compute and display ROC Curves
+    def ROCCurve(self, type_multi_class="ovo"):
+        import sklearn.metrics as metrics
+        return roc_auc_score(self._Y, self._probabilityPredictions, multi_class=type_multi_class)
+    
+    
+    # Compute all metrics
+    def MetricsReport(self):
+        metrics_options = {"accuracy": self.Accuracy, "IoU": self.IoU, "recall": self.Recall, "precision": self.Precision, "f1-score": self.F1score, "CohenKappa": self.CohenKappa }
+        r = dict()
+        for metric, method in metrics_options.items():
+            r[metric] = method()
+        return r
+    
+        
+    
+    ##### AUC
+    ##### IoU
+    ##### Recall (sensitivity)
+    ##### Precision
+    ##### Specificity
+    ##### F1 Score
+    ##### CohenKappa
+    ##### ROC Curve figure
+    ##### Confusion matrix (figure)
+
 
 class ModelMetricsCalculator(MetricsCalculator):
     """Compute most common performance metrics for a binary
