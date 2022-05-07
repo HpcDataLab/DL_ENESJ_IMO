@@ -1,5 +1,5 @@
 class MetricsCalculator():
-    def __init__(self, Y_labels, Y_probabilityPreds):
+    def __init__(self, Y_labels, Y_probabilityPreds, labels_names=None):
         import numpy as np
         import sklearn.metrics as metrics
         self._Y = Y_labels # correct labels
@@ -7,7 +7,20 @@ class MetricsCalculator():
         self._unique_labels = np.unique(self._Y)
         self._labelPredictions = tf.math.argmax(self._probabilityPredictions, axis=1).numpy()
         self._confusion_matrix = metrics.confusion_matrix(self._Y, self._labelPredictions)
+        self._withFigures = False # if figures will be generated
+        self._figuresPath = None # non given path
+        self.labels_names = labels_names
+    
+    
+    # If is set, images will be generated
+    def SetFiguresOn(self, path=''):
+        self._figuresPath = path
+        self._withFigures = True
         
+    def SetFiguresOff(self):
+        self._withFigures = False
+    
+    
     # Compute confusion matrix for specific label if given
     def Confusion_matrix(self, target_label_index=None, return_type="matrix"):
         """Computes a binary confusion matrix for `target_label` if given.
@@ -41,6 +54,30 @@ class MetricsCalculator():
         nLabels = len(self._unique_labels) # number of labels to predict
         if return_type not in ["matrix", "dict"]:
             raise ValueError(f'{return_type} is an invalid `return_type` value. Acceptable values are "matrix" and "dict".')
+        
+        # Save heatmap
+        if self._withFigures:
+            from os import path, mkdir
+            import seaborn as sns
+            import matplotlib.pyplot as plt
+            
+            ax = sns.heatmap(cm, annot=True, cmap='Blues')
+            ax.set_title('Confusion Matrix\n\n');
+            ax.set_xlabel('\nActual Values');
+            ax.set_ylabel('Predicted Values ');
+
+            if self.labels_names:
+                ## Ticket labels - List must be in alphabetical order
+                ax.xaxis.set_ticklabels(self.labels_names)
+                ax.yaxis.set_ticklabels(self.labels_names)
+
+            # Create directory if it does not exist yet
+            if not path.isdir(self._figuresPath):
+                mkdir(self._figuresPath)
+            ## Display the visualization of the Confusion Matrix
+            plt.savefig(f"{os.path.join(self._figuresPath, 'confusionMatrix.png')}", dpi=600)
+            plt.cla() # Clear axes
+        
         # If not particular label, return complete confusion matrix
         if target_label_index == None:
             # return sklearn matrix
@@ -75,9 +112,8 @@ class MetricsCalculator():
                 "FP": FP,
                 "TN": TN
             }
-        
     
-    # Compute Ccuracy over results
+    # Compute accuracy over results
     def Accuracy(self, target_label_index=None, confusion_matrix=None, confusion_dict=None):
         """Measures accuracy.
         Parameters
@@ -157,7 +193,14 @@ class MetricsCalculator():
     
     # Compute all metrics
     def MetricsReport(self):
-        metrics_options = {"accuracy": self.Accuracy, "IoU": self.IoU, "recall": self.Recall, "precision": self.Precision, "f1-score": self.F1score, "CohenKappa": self.CohenKappa }
+        metrics_options = {
+            "accuracy": self.Accuracy, 
+            "IoU": self.IoU, 
+            "recall": self.Recall, 
+            "precision": self.Precision, 
+            "f1-score": self.F1score, 
+            "CohenKappa": self.CohenKappa,
+        }
         r = dict()
         for metric, method in metrics_options.items():
             r[metric] = method()
@@ -189,9 +232,9 @@ class ModelMetricsCalculator(MetricsCalculator):
         Target labels to be predicted by the classifier.
     """
     
-    def __init__(self, classifier, X, Y):
+    def __init__(self, classifier, X, Y, labels_names=None):
         import sklearn.metrics as metrics
         import numpy as np
         classifier.trainable = False # freeze layer weights
         probabilityPredictions = model.predict(X)
-        super().__init__(Y, probabilityPredictions) # init from parent class
+        super().__init__(Y, probabilityPredictions, labels_names) # init from parent class
