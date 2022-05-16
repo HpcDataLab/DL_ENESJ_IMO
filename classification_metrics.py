@@ -9,7 +9,7 @@ class MetricsCalculator():
         self._confusion_matrix = metrics.confusion_matrix(self._Y, self._labelPredictions)
         self._withFigures = False # if figures will be generated
         self._figuresPath = None # non given path
-        self.labels_names = labels_names
+        self._labels_names = labels_names
     
     
     # If is set, images will be generated
@@ -17,6 +17,26 @@ class MetricsCalculator():
         self._figuresPath = path
         self._withFigures = True
         
+        from os import path, mkdir
+        # Create directory if it does not exist yet
+        def split(p, arr):
+            sp = path.split(p)
+            arr.insert(0, sp[1])
+            if sp[0] == "":
+                return arr
+            return split(sp[0], arr)
+        
+        # Check if directory is available, if not creat them
+        splitted = split(self._figuresPath, [])
+        for i, p in enumerate(splitted):
+            baseP = ""
+            for j in range(i):
+                baseP = path.join(baseP, splitted[j])
+            nP = path.join(baseP, splitted[i])
+            if not path.isdir(nP):
+                mkdir(nP)
+        
+    
     def SetFiguresOff(self):
         self._withFigures = False
     
@@ -48,7 +68,7 @@ class MetricsCalculator():
         -------
         confusion_matrix : array-like, dict
             Confusion matrix from labels with TP, TN, FP and TN values.
-        """
+        """        
         import sklearn.metrics as metrics
         cm = self._confusion_matrix
         nLabels = len(self._unique_labels) # number of labels to predict
@@ -57,25 +77,22 @@ class MetricsCalculator():
         
         # Save heatmap
         if self._withFigures:
-            from os import path, mkdir
             import seaborn as sns
             import matplotlib.pyplot as plt
             
-            ax = sns.heatmap(cm, annot=True, cmap='Blues')
+            ax = sns.heatmap(cm, annot=True, cmap='Blues', fmt=".0f")
             ax.set_title('Confusion Matrix\n\n');
             ax.set_xlabel('\nActual Values');
             ax.set_ylabel('Predicted Values ');
 
-            if self.labels_names:
+            if self._labels_names:
                 ## Ticket labels - List must be in alphabetical order
-                ax.xaxis.set_ticklabels(self.labels_names)
-                ax.yaxis.set_ticklabels(self.labels_names)
-
-            # Create directory if it does not exist yet
-            if not path.isdir(self._figuresPath):
-                mkdir(self._figuresPath)
+                ax.xaxis.set_ticklabels(self._labels_names)
+                ax.yaxis.set_ticklabels(self._labels_names)
+                
             ## Display the visualization of the Confusion Matrix
             plt.savefig(f"{os.path.join(self._figuresPath, 'confusionMatrix.png')}", dpi=600)
+            plt.clf() # Clear figure
             plt.cla() # Clear axes
         
         # If not particular label, return complete confusion matrix
@@ -91,7 +108,7 @@ class MetricsCalculator():
                     "FP": cm[1][0],
                     "TN": cm[1][1]
                 }
-        # if invalid input fiven
+        # if invalid input given
         if target_label_index < 0 or type(target_label_index) != int:
             raise ValueError(f"`target_label_index` must be a positive integer value, {target_label_index} given")
         if target_label_index > nLabels:
@@ -140,13 +157,20 @@ class MetricsCalculator():
     
     
     # Measure unbalanced metrics
-    def _UnbalancedMetric(self, metric, options=None):
+    def _UnbalancedMetric(self, metric, options=None, pass_probabilities=False):
+        # set options to be passed
         if options:
             r = options
         else:
             r = {"micro": None, "macro": None, "weighted": None}
+        # check whicch predictions will be passed
+        if pass_probabilities:
+            preds = self._probabilityPredictions
+        else:
+            preds = self._labelPredictions
+        # predict metric
         for k in r.keys():
-            r[k] = metric(self._Y, self._labelPredictions, average=k)
+            r[k] = metric(self._Y, preds, average=k)
         return r
     
     
@@ -186,9 +210,45 @@ class MetricsCalculator():
     
     
     # Compute and display ROC Curves
-    def ROCCurve(self, type_multi_class="ovo"):
+    def ROCCurve(self, type_multi_class='ovr', target_label_index=None):
         import sklearn.metrics as metrics
-        return roc_auc_score(self._Y, self._probabilityPredictions, multi_class=type_multi_class)
+        
+        if self._withFigures and not target_label_index:
+            raise ValueError("To create the ROC curve figure a target_label_index must be specified")
+        elif self._withFigures:
+            import matplotlib.pyplot as plt
+            import os
+            # get probabilities for given index label
+            new_p = self._probabilityPredictions[:, target_label_index] # predictions for desired label
+            # binary labels
+            new_y = np.array([y == target_label_index for y in self._Y], dtype=self._Y.dtype)
+
+            # ROC Curve values
+            fpr, tpr, thresholds = metrics.roc_curve(new_y, new_p)
+            auc = metrics.auc(fpr, tpr)
+            
+            # Create plot
+            lw = 2
+            plt.plot(fpr,tpr, color="darkorange", lw=lw, label="ROC curve (area = %0.2f)" % auc,)
+            plt.axis([0,1,0,1]) 
+            plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.05])
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.title(f"{self._labels_names[target_label_index]} label prediction")
+            plt.legend(loc="lower right")
+            
+            ## Display the visualization of the Confusion Matrix
+            plt.savefig(f"{os.path.join(self._figuresPath, 'dmeRocCurve.png')}", dpi=600)
+            plt.clf() # Clear figure
+            plt.cla() # Clear axes
+        
+        o = {"macro": None, "weighted": None}
+        auc = {}
+        for op in o:
+            auc[op] = metrics.roc_auc_score(self._Y, self._probabilityPredictions, multi_class=type_multi_class, average=op)
+        return auc
     
     
     # Compute all metrics
@@ -203,9 +263,9 @@ class MetricsCalculator():
         }
         r = dict()
         for metric, method in metrics_options.items():
-            r[metric] = method()
-        return r
-    
+            r[metric] = method() 
+        r["auc"] = self.ROCCurve(target_label_index=labels_list.index("DME"))
+        return r    
         
     
     ##### AUC
@@ -237,4 +297,4 @@ class ModelMetricsCalculator(MetricsCalculator):
         import numpy as np
         classifier.trainable = False # freeze layer weights
         probabilityPredictions = model.predict(X)
-        super().__init__(Y, probabilityPredictions, labels_names) # init from parent class
+        super().__init__(Y, probabilityPredictions, labels_names=labels_names) # init from parent class
