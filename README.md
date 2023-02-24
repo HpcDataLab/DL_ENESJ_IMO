@@ -1,52 +1,26 @@
 # Analysis of OCT Images to detect retinopathy ENESJ - IMO
 
-Description: This repository contains the source code, libraries and documentation for setting up the web server using Keras TF and Sklearn
+## In this branch files
+### [ReducedImagesTrain.ipynb](ReducedImagesTrain.ipynb)
 
+Train models ([Xception](https://arxiv.org/abs/1610.02357), [ResNet50](https://arxiv.org/abs/1512.03385) and [OpticNet](https://ieeexplore.ieee.org/document/8999264)) with the [OCT2017](https://data.mendeley.com/datasets/rscbjbr9sj/2) dataset partitioning and training with fractions of the complete train set (from 1% to 100%) and evaluated performance with test and validation accuracy. All nets were trained with pretrained parameters (see sources) and with random weights.
 
-## Docker configruration
+**NOTE:** All runs were added through git commits, check them for more information.
 
-0. Install libraries 
-+ `pip install notebook`
-+ `pip install random2 opencv-python numpy pandas matplotlib seaborn sklearn scipy sklearn keras scikit-image tqdm tensorflow imblearn`
-+ ```bash pip3 install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html ```
-
-### Increase size of docker containers 
-
-1. Go to `/etc/containers` and edit `storage.conf` and add:   
-  + `basesize = "200G"`
-
-2. Restart docker service 
-  ´systemctl restart podman´
-
-
-#### Run docker container using a volume
-
-
-1. Create a volume
-
-+ `docker volume create jupyterhub-vol`
-+ `docker volume ls`
-
-2. Run docker container using a volume
-
-+ `docker pull jupyterhub/jupyterhub`
-
-+ `docker run -d -p 8000:8000 run --name jupyterhub --mount type=volume,source=jupyterhub-vol,target=/volume jupyterhub:latest`
-+ `docker exec -it jupyterhub bash`
-
-#### Remove docker image and volume
-
-Remove image and container
-
-+ `docker rm <image_id>`
-
-Remove volume
-
-+ `docker volume rm <volume_id>`
-
-#### Stop docker container
-
-`docker stop <container_id>`
-
-## See docker logs
-`docker logs jupyterhub`
+### [Results.csv](Results.csv)
+All trained models performance results.
+Columns:
+ - `model`: Name of the trained model.
+ - `train set images`: Number of images used in the train set (all taken from the main train set).
+ - `pretrained`: If the model parameters were pretrained or not.
+ - `pretrained dataset`: If the model was pretrained, the dataset used to train it.
+ - `epochs`: Number of epochs trained.
+ - `batch size`: Batch size used while training.
+ - `learning rate`: Learning rate used while training.
+ - `optimizer`: Optimizer algorithm used while training.
+ - `training time (seconds)`: Amount of time (in seconds) the model training process took.
+ - `train accuracy`: Accuracy on the last training epoch over the train set.
+ - `train loss`: Cross entropy loss on the last training epoch over the train set.
+- `validation accuracy`: Accuracy on the last training epoch over the validation set.
+ - `validation loss`: Cross entropy loss on the last training epoch over the validation set. 
+ - `test accuracy`: Accuracy on the last training epoch over the test set.
